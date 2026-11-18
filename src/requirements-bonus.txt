@@ -1,0 +1,5 @@
+# Bonus only (DeepEval port). NOT installed by CI. Use a separate venv so numpy/scipy of the main one do not move:
+#   python -m venv .venv-bonus
+#   .venv-bonus\Scripts\python -m pip install -r requirements.txt -r requirements-bonus.txt
+#   $env:DEEPEVAL_TELEMETRY_OPT_OUT="YES"; .venv-bonus\Scripts\python -m bonus.deepeval_port
+deepeval==4.3.4

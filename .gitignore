@@ -5,6 +5,7 @@
 
 # Python / OS (the PowerShell setup creates src/.venv inside the repo)
 .venv/
+.venv-*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
