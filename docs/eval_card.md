@@ -63,7 +63,7 @@ Yêu cầu hoàn phí cho đơn giao trễ hoặc hàng hỏng của LogiX-VN, m
 - **14 item.** CI rất rộng (ví dụ `fixed` so với `swarm`: CI [+0.000, +0.043]) nên chỉ chặn được hồi quy lớn. Một lỗi chỉ xuất hiện ở 1/3 seed không phát hiện ổn định được với 5 seed; không hạ ngưỡng để "bắt" nó.
 - **Judge replay.** Nhãn judge nằm sẵn trong CSV công khai, chưa có tập held-out mới. Các luật sửa rubric ở `docs/judge_audit.md` được rút ra từ chính dữ liệu đó.
 - **Bằng chứng FM không đồng đều.** FM-02, 03, 04, 05, 08 quan sát được trên shape công khai. FM-01, 06, 07 chỉ có từ probe từng công tắc lỗi (không shape công khai nào bật chúng). FM-09 chưa có bằng chứng ở v1.
-- **Grader FM-08 dùng regex** đọc số tiền trong reply (`35.000đ`, `35,000 VND`, `đồng`, `₫`). Reply viết số bằng chữ sẽ không bị bắt.
+- **Grader FM-08 đọc số tiền bằng regex cộng bộ đọc số chữ**: `35.000đ`, `35,000 VND`, `35 000 đồng`, `35k`, `35 nghìn`, `1,5 triệu`, và số viết bằng chữ có hoặc không dấu (`ba mươi lăm nghìn đồng`, `một trăm lẻ năm nghìn`). Một dãy từ chỉ số chỉ được coi là tiền khi có đơn vị (nghìn, ngàn, triệu) hoặc theo sau là chữ đồng/VND, nên "một lần nữa" hay "ba ngày" không bị coi là tiền. Vẫn chưa đọc được cách viết lạ như "3 chục" hay "nửa triệu".
 - **Chưa đo trên người dùng thật** và chưa có dữ liệu độ trễ, chi phí thật.
 - **CI chạy trên runner tự lưu trữ** (Windows, tài khoản bị chặn ngân sách Actions $0 nên không dùng được runner của GitHub). Kết quả tương đương nhưng hạ tầng khác với mặc định của workflow.
 
@@ -113,7 +113,8 @@ Cùng một agent (`swarm`), hai bộ seed khác nhau, không phải gate run (g
 | `seeded_regression` | chặn | `refund_amount_correct`, `pass_rate`, `pass_hat_5`, `reply_matches_ledger`, cả 3 slice |
 
 - Slice `money_movement` (12 item, sàn 0.95, blocking): bắt lỗi chỉ nằm trên claim có hoàn tiền.
-- Slice `adversarial` (14 item, sàn 0.90) và `denial` (11 item, sàn 0.90): bắt hồi quy ở claim bị tấn công và claim bị từ chối.
+- Slice `adversarial` (14 item, sàn 0.90) và `denial` (11 item, sàn 0.90): bắt hồi quy ở claim bị tấn công và claim bị từ chối. Ví dụ: `stale_clause` chập chờn (chỉ seed lẻ) chỉ bị chặn bởi slice `denial`, mọi chỉ số tổng hợp đều qua.
+- Slice `escalation` (4 item, sàn 0.90) được thêm sau để không bỏ trống loại claim nào. Hiện chưa variant công khai nào làm sai các claim này, nên chưa có trường hợp chứng minh nó bắt được gì.
 - Với `slice_regression`, sàn của slice là thứ chặn, không phải CI: CI của slice [−0.300, +0.000] chạm 0. Với 12 item, CI paired rất rộng.
 
 ## Scorecard và trap

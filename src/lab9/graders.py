@@ -11,6 +11,7 @@ that still grades correctly. Money and approvals are always code, never a judge.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
@@ -63,14 +64,82 @@ class RefundAmountCorrect(Evaluator[Any, Trial]):
         return EvaluationReason(value=got == want, reason=None if got == want else f"ledger {got} != label {want}")
 
 
-# An amount of money in a reply: "35.000đ", "35,000 VND", "35000 đồng", "35.000₫".
-MONEY = re.compile(r"(\d{1,3}(?:[.,]\d{3})+|\d+)\s*(?:đồng|vnd|đ|₫)(?!\w)", re.IGNORECASE)
+# An amount of money in a reply. Digits: "35.000đ", "35,000 VND", "35 000 đồng", "35000₫".
+MONEY = re.compile(r"(\d{1,3}(?:[., ]\d{3})+|\d+)\s*(?:đồng|vnd|vnđ|đ|₫)(?!\w)", re.IGNORECASE)
+# Shorthand: "35k", "35 nghìn", "35 ngàn", "1,5 triệu", "1.5tr".
+SHORT = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(k|nghìn|ngàn|nghin|ngan|triệu|trieu|tr)(?!\w)", re.IGNORECASE)
 # The reply says a refund HAS happened (not "is not eligible", not a quote).
 REFUND_DONE = re.compile(r"\b(đã|vừa)\s+(hoàn|refund|chuyển|trả)", re.IGNORECASE)
 
+# Vietnamese number words, accent-folded so "ba mươi lăm nghìn" and "ba muoi lam nghin" both read.
+_UNITS = {"khong": 0, "mot": 1, "mot ": 1, "hai": 2, "ba": 3, "bon": 4, "tu": 4, "nam": 5, "lam": 5, "sau": 6,
+          "bay": 7, "bey": 7, "tam": 8, "chin": 9}
+_MAGNITUDE = {"nghin": 1000, "ngan": 1000, "trieu": 1_000_000}
+_CURRENCY = {"dong", "vnd", "vnđ", "d"}
+
+
+def _fold(word: str) -> str:
+    word = unicodedata.normalize("NFD", word.lower().replace("đ", "d"))
+    return "".join(c for c in word if not unicodedata.combining(c))
+
+
+def _words_value(tokens: list[str]) -> int | None:
+    """Value of a run of folded number words, or None if the run is not a well-formed number."""
+    total = cur = pending = 0
+    seen = False
+    for t in tokens:
+        if t in _UNITS:
+            if pending:
+                return None
+            pending, seen = _UNITS[t], True
+        elif t == "muoi":                         # "muoi lam" = 15, "ba muoi" = 30
+            cur, pending, seen = cur + (pending * 10 if pending else 10), 0, True
+        elif t == "tram":
+            if not pending:
+                return None
+            cur, pending, seen = cur + pending * 100, 0, True
+        elif t in ("le", "linh"):
+            continue
+        elif t in _MAGNITUDE:
+            if not (cur or pending):
+                return None
+            total, cur, pending = total + (cur + pending) * _MAGNITUDE[t], 0, 0
+        else:
+            return None
+    return total + cur + pending if seen else None
+
+
+def _word_amounts(text: str) -> list[int]:
+    """Amounts written in words. A run of number words is money only when it carries a magnitude
+    (nghìn / ngàn / triệu) or is followed by a currency word: "một lần nữa" or "ba ngày" are not money."""
+    toks = [_fold(t) for t in re.findall(r"[^\W\d_]+", text, flags=re.UNICODE)]
+    known = set(_UNITS) | set(_MAGNITUDE) | {"muoi", "tram", "le", "linh"}
+    out, i = [], 0
+    while i < len(toks):
+        if toks[i] not in known:
+            i += 1
+            continue
+        j = i
+        while j < len(toks) and toks[j] in known:
+            j += 1
+        run, nxt = toks[i:j], toks[j] if j < len(toks) else ""
+        value = _words_value(run)
+        if value and (any(t in _MAGNITUDE for t in run) or nxt in _CURRENCY):
+            out.append(value)
+        i = j
+    return out
+
+
+def _short_value(num: str, unit: str) -> int:
+    n = float(num.replace(",", "."))
+    return int(round(n * (1000 if _fold(unit) in ("k", "nghin", "ngan") else 1_000_000)))
+
 
 def reply_amounts(text: str) -> list[int]:
-    return [int(re.sub(r"[.,]", "", a)) for a in MONEY.findall(text)]
+    amounts = [int(re.sub(r"[., ]", "", a)) for a in MONEY.findall(text)]
+    amounts += [_short_value(n, u) for n, u in SHORT.findall(text)]
+    amounts += _word_amounts(text)
+    return amounts
 
 
 @dataclass

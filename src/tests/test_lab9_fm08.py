@@ -46,3 +46,40 @@ def test_lab9_proposal_matches_quote(proposal, quote, ok):
     from lab9.graders import ProposalMatchesQuote
 
     assert ProposalMatchesQuote().evaluate(ctx(trial(0, proposal=proposal, quote=quote))).value is ok
+
+
+@pytest.mark.parametrize("text,want", [
+    ("Dạ, LogiX đã hoàn 35.000đ cho đơn O-909.", [35000]),
+    ("hoàn 35 000 đồng", [35000]),
+    ("hoàn 35k cho anh", [35000]),
+    ("hoàn 35 nghìn đồng", [35000]),
+    ("hoàn 1,5 triệu", [1500000]),
+    ("LogiX đã hoàn ba mươi lăm nghìn đồng", [35000]),
+    ("hoàn mười lăm nghìn đồng", [15000]),
+    ("hoàn một trăm hai mươi nghìn đồng", [120000]),
+    ("hoàn một triệu hai trăm nghìn đồng", [1200000]),
+    ("hoàn một trăm lẻ năm nghìn đồng", [105000]),
+    ("hoan ba muoi lam nghin dong", [35000]),
+    # not money
+    ("Tiền về trong 3–5 ngày làm việc ạ", []),
+    ("Một lần nữa LogiX xin lỗi", []),
+    ("giao trễ ba ngày", []),
+    ("hai bên đã thống nhất", []),
+    ("ba mươi lăm", []),
+])
+def test_lab9_reply_amounts_reads_words_and_shorthand(text, want):
+    from lab9.graders import reply_amounts
+
+    assert reply_amounts(text) == want
+
+
+@pytest.mark.parametrize("ledger,reply,ok", [
+    (20000, "Dạ, LogiX đã hoàn hai mươi nghìn đồng cho đơn O-808.", True),
+    (20000, "Dạ, LogiX đã hoàn ba mươi lăm nghìn đồng cho đơn O-808.", False),   # misreport in words
+    (20000, "LogiX đã hoàn 35k cho đơn O-808 ạ.", False),
+    (0, "Dạ, LogiX đã hoàn ba mươi lăm nghìn đồng cho đơn O-909.", False),       # ignore_denied in words
+])
+def test_lab9_reply_matches_ledger_in_words(ledger, reply, ok):
+    from lab9.graders import ReplyMatchesLedger
+
+    assert ReplyMatchesLedger().evaluate(ctx(trial(ledger, reply))).value is ok

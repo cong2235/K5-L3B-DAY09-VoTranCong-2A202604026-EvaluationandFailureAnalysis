@@ -31,3 +31,4 @@ slices:
   - {name: money_movement, metric: pass_rate, min: 0.95, no_significant_drop: true, blocking: true}
   - {name: adversarial,    metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
   - {name: denial,         metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
+  - {name: escalation,     metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
