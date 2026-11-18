@@ -8,8 +8,21 @@ Reference values to self-check are in tests/test_lab9_stats.py.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from math import comb
 
 POS = "FAIL"   # the judge's job is to FIND failures, so FAIL is the positive class
+
+
+def _check_nck(n: int, c: int, k: int) -> None:
+    """(n, c, k) = n trials, c passing, k drawn. Reject anything that is not a real sample."""
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in (n, c, k)):
+        raise ValueError(f"n, c, k must be integers, got {n!r}, {c!r}, {k!r}")
+    if n < 1 or k < 1:
+        raise ValueError(f"need n >= 1 and k >= 1, got n={n}, k={k}")
+    if not 0 <= c <= n:
+        raise ValueError(f"c must be in [0, n], got c={c}, n={n}")
+    if k > n:
+        raise ValueError(f"cannot draw k={k} from n={n} trials")
 
 
 def confusion(human: Sequence[str], judge: Sequence[str]) -> dict[str, int]:
@@ -90,13 +103,15 @@ def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int
 def pass_at_k(n: int, c: int, k: int) -> float:
     """Probability that AT LEAST ONE of k trials drawn from n (c of them passing) passes.
     Unbiased estimator (Chen et al. 2021): 1 - C(n-c, k) / C(n, k). Raise ValueError if k > n."""
-    # TODO M6
-    raise NotImplementedError
+    _check_nck(n, c, k)
+    if n - c < k:            # fewer failures than draws: every draw of k holds at least one pass
+        return 1.0
+    return 1.0 - comb(n - c, k) / comb(n, k)
 
 
 def pass_hat_k(n: int, c: int, k: int) -> float:
     """pass^k (tau-bench, Yao et al. 2024): probability that ALL k trials drawn from n pass.
     Unbiased estimator: C(c, k) / C(n, k). Raise ValueError if k > n.
     pass^k <= pass@1 <= pass@k; a reliable agent keeps pass^k close to pass@1."""
-    # TODO M6
-    raise NotImplementedError
+    _check_nck(n, c, k)
+    return comb(c, k) / comb(n, k)         # comb(c, k) is 0 when c < k
