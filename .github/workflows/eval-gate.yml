@@ -41,6 +41,7 @@ jobs:
           python -m lab9.eval --shape swarm --spec "$EVAL_SPEC" --out reports/eval_pr.json
           python -m lab9.gate --pr reports/eval_pr.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC"
       - name: Check the committed baseline and the M3 metric
+        shell: bash
         run: python -m lab9.ci_check --pr reports/eval_pr.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC"
       - name: Verify the gate accepts fixed
         shell: bash
