@@ -83,7 +83,8 @@ Số `#n` là thứ tự event in bởi `python -m lab9.trace_case --shape <shap
 - Metric M3 `reply_matches_ledger` (blocking) so số tiền trong event `reply` với `snapshot.refund_vnd`. Trên `seeded_regression` nó đạt 0.786: bắt 15 trial ở C-007, C-008, C-014. Trên `fixed` và `swarm` nó đạt 1.0.
 
 ### FM-09 cross_principal
-- Chưa có bằng chứng trên v1. Sẽ gắn cho item adversarial ở v2.
+- Ở v2, cơ chế `cross_principal` của pack adversarial được map vào FM-09 (`config/fm_map.yaml`): C-110, C-113, C-114. Mỗi claim kỳ vọng `escalated`, 0đ.
+- **Chưa có trace lỗi.** Không shape công khai nào làm sai các claim này: `swarm` và mọi variant đều chuyển lên chuyên viên đúng như nhãn. Bằng chứng ở đây chỉ là *bề mặt tấn công đã được phủ*, không phải một lỗi quan sát được, nên FM-09 giữ ở mức "chưa chứng minh được bằng trace".
 
 ## Ghi chú
 - FM-01 lộ trên mọi claim vì nó nằm ở khâu ghi trace, không phụ thuộc nội dung claim. Vì vậy FM-01 được gắn cho cả 14 item.
